@@ -6,7 +6,7 @@ SDL_LDFLAGS := $(shell sdl-config --libs)
 OCFLAGS = -O3 -msse3  -ftree-vectorizer-verbose=2 -mfpmath=sse -march=native -ftree-vectorize -flto -fomit-frame-pointer -funsafe-loop-optimizations -funsafe-math-optimizations -ffinite-math-only -fno-trapping-math -frounding-math -fsingle-precision-constant -Wall $(SDL_CFLAGS) -I./ -I./freedo -I./freedo/filters
 CFLAGS = -DUSEGL -g -Wall $(SDL_CFLAGS) -I./ -I./freedo -I./freedo/filters -fno-omit-frame-pointer
 LFLAGS = -Wall $(DEBUG)
-LIBS = $(SDL_LDFLAGS) -lm  -lGL -lGLU -L/usr/lib/gcc/i486-linux-gnu/4.7 -L/usr/lib -lstdc++ 
+LIBS = $(SDL_LDFLAGS) -lm  -lGL -lGLU -L/usr/lib -lstdc++ 
 
 OBJS = freedo/arm.o \
 freedo/DiagPort.o\
