@@ -1,14 +1,49 @@
-TARGET=3doemu
-CC = g++
-DEBUG =
-SDL_CFLAGS := $(shell sdl-config --cflags)
-SDL_LDFLAGS := $(shell sdl-config --libs)
-OCFLAGS = -O3 -msse3  -ftree-vectorizer-verbose=2 -mfpmath=sse -march=native -ftree-vectorize -flto -fomit-frame-pointer -funsafe-loop-optimizations -funsafe-math-optimizations -ffinite-math-only -fno-trapping-math -frounding-math -fsingle-precision-constant -Wall $(SDL_CFLAGS) -I./ -I./freedo -I./freedo/filters
-CFLAGS = -DUSEGL -g -Wall $(SDL_CFLAGS) -I./ -I./freedo -I./freedo/filters -fno-omit-frame-pointer
-LFLAGS = -Wall $(DEBUG)
-LIBS = $(SDL_LDFLAGS) -lm  -lGL -lGLU -L/usr/lib/gcc/i486-linux-gnu/4.7 -L/usr/lib -lstdc++ 
+ifeq ($(platform),)
+platform = unix
+ifeq ($(shell uname -a),)
+   platform = win
+else ifneq ($(findstring MINGW,$(shell uname -a)),)
+   platform = win
+else ifneq ($(findstring Darwin,$(shell uname -a)),)
+   platform = osx
+else ifneq ($(findstring win,$(shell uname -a)),)
+   platform = win
+endif
+endif
 
-OBJS = freedo/arm.o \
+ifeq ($(platform), unix)
+   CC = gcc
+   CXX = g++
+   TARGET := 3doh
+   fpic := -fPIC
+   CFLAGS += -m32
+   SHARED := -m32 -shared -Wl,--no-undefined
+else ifeq ($(platform), osx)
+   TARGET := libretro.dylib
+   fpic := -fPIC
+   SHARED := -dynamiclib
+else ifeq ($(platform), android) 
+   TARGET := 3doh
+   CC = arm-linux-androideabi-gcc
+   CXX = arm-linux-androideabi-g++ 
+   AR = @arm-linux-androideabi-ar
+   LD = @arm-linux-androideabi-g++ 
+   SHARED :=  -llog -fPIC -shared -Wl
+#-Wl,--fix-cortex-a8
+   CFLAGS += -march=armv7-a -mfloat-abi=softfp -DRETRO_AND
+else
+   CC = gcc
+   TARGET := retro-3doh.dll
+   SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--no-undefined
+endif
+
+ifeq ($(DEBUG), 1)
+   CFLAGS += -O0 -g
+else
+   CFLAGS += -O3
+endif
+
+OBJECTS := freedo/arm.o \
 freedo/DiagPort.o\
 freedo/quarz.o\
 freedo/Clio.o \
@@ -32,19 +67,25 @@ input.o \
 config.o \
 main.o
 
+CFLAGS += -DLSB_FIRST -DALIGN_DWORD -DFAST_MEM $(fpic)  \
+	-std=gnu99  -O3 -finline-functions -funroll-loops  -fsigned-char  \
+	-Wno-strict-prototypes -ffast-math -fomit-frame-pointer -fno-strength-reduce  -fno-builtin -finline-functions -s
+
+CXXFLAGS += $(CFLAGS) -std=gnu++0x
+CPPFLAGS += $(CFLAGS)
+
 all: $(TARGET)
 
-rm-elf:
-	-rm -f $(TARGET) $(OBJS)
-
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET) $(LIBS)
+$(TARGET): $(OBJECTS)
+	$(CXX) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) -lm  
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) $(HINCLUDES) -c -o $@ $<
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
-
+	$(CXX) $(CXXFLAGS) $(HINCLUDES) -c -o $@ $<
 clean:
-	rm -r $(OBJS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET)
+
+.PHONY: clean
+
