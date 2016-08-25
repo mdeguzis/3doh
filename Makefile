@@ -1,3 +1,9 @@
+#include dirs
+INCLUDES = -I. -I/usr/local/include
+
+#libraries
+LIBS = -L/usr/local/lib
+
 ifeq ($(platform),)
 platform = unix
 ifeq ($(shell uname -a),)
