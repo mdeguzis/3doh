@@ -1,62 +1,96 @@
-#www.freedo.org
-#The first and only working 3DO multiplayer emulator.
-#
-#The FreeDO licensed under modified GNU LGPL, with following notes:
-#
-#*   The owners and original authors of the FreeDO have full right to develop closed source derivative work.
-#*   Any non-commercial uses of the FreeDO sources or any knowledge obtained by studying or reverse engineering
-#    of the sources, or any other material published by FreeDO have to be accompanied with full credits.
-#*   Any commercial uses of FreeDO sources or any knowledge obtained by studying or reverse engineering of the sources,
-#    or any other material published by FreeDO is strictly forbidden without owners approval.
-#
-#The above notes are taking precedence over GNU LGPL in conflicting situations.
-#
-#Project authors:
-#
-#Alexander Troosh
-#Maxim Grishin
-#Allen Wright
-#John Sammons
-#Felix Lazarev
-##########################################################################################################################
-
-#source files
-
-SRC = Clio.cpp Madam.cpp bitop.cpp arm.cpp DSP.cpp Iso.cpp quarz.cpp SPORT.cpp vdlp.cpp XBUS.cpp DiagPort.cpp _3do_sys.cpp
-
-OBJ = $(SRC:.cpp=.o)
-
-OUT = libfreedo.a
-
 #include dirs
-INCLUDES = -I. -I/usr/local/include
-
-#C++ flags
-CCFLAGS = -g
-
-#compiler
-CCC = g++
+INCLUDES = -I. -I./freedo -I./freedo/filters
 
 #libraries
 LIBS = -L/usr/local/lib
 
-#compile flags
-LDFLAGS = -g
+ifeq ($(platform),)
+platform = unix
+ifeq ($(shell uname -a),)
+   platform = win
+else ifneq ($(findstring MINGW,$(shell uname -a)),)
+   platform = win
+else ifneq ($(findstring Darwin,$(shell uname -a)),)
+   platform = osx
+else ifneq ($(findstring win,$(shell uname -a)),)
+   platform = win
+endif
+endif
 
-.SUFFIXES: .cpp
+ifeq ($(platform), unix)
+   CC = gcc
+   CXX = g++
+   TARGET := 3doh
+   fpic := -fPIC
+   CFLAGS += -m32
+   SHARED := -m32 -shared -Wl,--no-undefined
+else ifeq ($(platform), osx)
+   TARGET := libretro.dylib
+   fpic := -fPIC
+   SHARED := -dynamiclib
+else ifeq ($(platform), android) 
+   TARGET := 3doh
+   CC = arm-linux-androideabi-gcc
+   CXX = arm-linux-androideabi-g++ 
+   AR = @arm-linux-androideabi-ar
+   LD = @arm-linux-androideabi-g++ 
+   SHARED :=  -llog -fPIC -shared -Wl
+#-Wl,--fix-cortex-a8
+   CFLAGS += -march=armv7-a -mfloat-abi=softfp -DRETRO_AND
+else
+   CC = gcc
+   TARGET := retro-3doh.dll
+   SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--no-undefined
+endif
 
-default:	dep $(OUT)
+ifeq ($(DEBUG), 1)
+   CFLAGS += -O0 -g
+else
+   CFLAGS += -O3
+endif
 
-.cpp.o:
-	$(CCC) $(INCLUDES) $(CCFLAGS) -c $< -o $@
+OBJECTS := freedo/arm.o \
+freedo/DiagPort.o\
+freedo/quarz.o\
+freedo/Clio.o \
+freedo/frame.o \
+freedo/Madam.o \
+freedo/vdlp.o \
+freedo/_3do_sys.o \
+freedo/bitop.o \
+freedo/DSP.o \
+freedo/Iso.o \
+freedo/SPORT.o \
+freedo/XBUS.o \
+freedo/filters/hq2x.o \
+freedo/filters/hq3x.o \
+freedo/filters/hq4x.o \
+freedo/filters/hqx_init.o \
+video.o \
+sound.o \
+cdrom.o \
+input.o \
+config.o \
+main.o
 
-$(OUT): $(OBJ)
-	ar rcs $(OUT) $(OBJ)
+CFLAGS += -DLSB_FIRST -DALIGN_DWORD -DFAST_MEM $(fpic)  \
+	-std=gnu99  -O3 -finline-functions -funroll-loops  -fsigned-char  \
+	-Wno-strict-prototypes -ffast-math -fomit-frame-pointer -fno-strength-reduce  -fno-builtin -finline-functions -s
 
-depend:	dep
+CXXFLAGS += $(CFLAGS) -std=gnu++0x
+CPPFLAGS += $(CFLAGS)
 
-dep:
-	makedepend -- $(CFLAGS) -- $(INCLUDES) $(SRC)
+all: $(TARGET)
 
+$(TARGET): $(OBJECTS)
+	$(CXX) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) -lm  
+
+%.o: %.c
+	$(CXX) $(CFLAGS) $(HINCLUDES) -c -o $@ $<
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(HINCLUDES) -c -o $@ $<
 clean:
-	rm -f $(OBJ) $(OUT) Makefile.bak Makefile~
+	rm -f $(OBJECTS) $(TARGET)
+
+.PHONY: clean
