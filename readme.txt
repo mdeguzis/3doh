@@ -1,7 +1,13 @@
 3D'oh! - A libre 3do emulator 
 Author: Guaripolo - gabriel@arcadenea.com.ar
+Updated by: Michael DeGuzis - mdeguzis@gmail.com
 ============================================
 
+Notice
+======
+
+This is a work in progress fork/update to correct the Makefile/Project for use on Debian 8 / SteamOS. 
+If you wish to work on the project to improve code, please submit a PR.
 
 
 1. What's this: 
