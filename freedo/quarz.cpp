@@ -34,7 +34,7 @@ int ARM_CLOCK=12500000;
 //#define PAL_CLOCK       14750000        //944*625(lines)  //15625 Hz
 
 
-//#pragma pack(push,1)
+#pragma pack(push,1)
 struct QDatum
 {
         uint32 qrz_AccARM;
@@ -43,15 +43,11 @@ struct QDatum
         uint32 qrz_TCount;
         uint32 VDL_CLOCK, qrz_vdlline, VDL_HS,VDL_FS;
 };
-//#pragma pack(pop)
+#pragma pack(pop)
 
 static QDatum quarz;
 
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 unsigned int _qrz_SaveSize()
 {
         return sizeof(QDatum);
@@ -146,7 +142,6 @@ void __fastcall _qrz_PushARMCycles(unsigned int clks)
         }
         qrz_AccDSP+=arm*SND_CLOCK;
         qrz_AccVDL+=arm*(VDL_CLOCK);
-//		printf("%d %d %d\n",clks, arm, qrz_AccDSP);
 
         //if(Get_madam_FSM()!=FSM_INPROCESS)
         if(_clio_GetTimerDelay())qrz_TCount+=arm*((__temporalfixes?12500000:25000000)/(_clio_GetTimerDelay()));//clks<<1;

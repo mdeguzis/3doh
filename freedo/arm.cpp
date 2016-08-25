@@ -37,11 +37,7 @@ Felix Lazarev
 #ifdef _WIN32
 #include <mem.h>
 #else
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 #endif
 
 
@@ -154,7 +150,7 @@ struct ARM_CoreState
 };
 #pragma pack(pop)
 
-ARM_CoreState arm;
+static ARM_CoreState arm;
 static int CYCLES;	//cycle counter
 
 unsigned int __fastcall rreadusr(unsigned int rn);
@@ -183,15 +179,6 @@ void __fastcall mwritew(unsigned int addr,unsigned int val);
 void* Getp_NVRAM(){return pNVRam;};
 void* Getp_ROMS(){return pRom;};
 void* Getp_RAMS(){return pRam;};
-
-//uint8* getpram(){return pRam;};
-uint8* getpram()
-{
-        return (uint8*)pRam;
-}
-
-
-
 
 unsigned int _arm_SaveSize()
 {
@@ -240,7 +227,7 @@ void _arm_Load(void *buff)
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-static inline void load(unsigned int rn, unsigned int val)
+__inline void load(unsigned int rn, unsigned int val)
 {
     RON_USER[rn]=val;
 }
@@ -518,7 +505,7 @@ void _arm_SetCPSR(unsigned int a)
 }
 
 
-static inline void SETM(unsigned int a)
+__inline void SETM(unsigned int a)
 {
 	if(arm_mode_table[a&0x1f]==ARM_MODE_UNK)
 	{
@@ -530,12 +517,12 @@ static inline void SETM(unsigned int a)
 }
 
 // This functions d'nt change mode bits, then need no update regcur
-static inline void SETN(bool a) { CPSR=(CPSR&0x7fffffff)|((a?1<<31:0)); }
-static inline void SETZ(bool a) { CPSR=(CPSR&0xbfffffff)|((a?1<<30:0)); }
-static inline void SETC(bool a) { CPSR=(CPSR&0xdfffffff)|((a?1<<29:0)); }
-static inline void SETV(bool a) { CPSR=(CPSR&0xefffffff)|((a?1<<28:0)); }
-static inline void SETI(bool a) { CPSR=(CPSR&0xffffff7f)|((a?1<<7:0)); }
-static inline void SETF(bool a) { CPSR=(CPSR&0xffffffbf)|((a?1<<6:0)); }
+__inline void SETN(bool a) { CPSR=(CPSR&0x7fffffff)|((a?1<<31:0)); }
+__inline void SETZ(bool a) { CPSR=(CPSR&0xbfffffff)|((a?1<<30:0)); }
+__inline void SETC(bool a) { CPSR=(CPSR&0xdfffffff)|((a?1<<29:0)); }
+__inline void SETV(bool a) { CPSR=(CPSR&0xefffffff)|((a?1<<28:0)); }
+__inline void SETI(bool a) { CPSR=(CPSR&0xffffff7f)|((a?1<<7:0)); }
+__inline void SETF(bool a) { CPSR=(CPSR&0xffffffbf)|((a?1<<6:0)); }
 
 
 ///////////////////////////////////////////////////////////////
@@ -551,12 +538,12 @@ static inline void SETF(bool a) { CPSR=(CPSR&0xffffffbf)|((a?1<<6:0)); }
 #define ISF  ((CPSR>>6)&1)
 
 
-static inline uint32 _bswap(uint32 x)
+__inline uint32 _bswap(uint32 x)
 {
 	return (x>>24) | ((x>>8)&0x0000FF00L) | ((x&0x0000FF00L)<<8) | (x<<24);
 }
 
-static inline uint32 _rotr(uint32 val, uint32 shift)
+__inline uint32 _rotr(uint32 val, uint32 shift)
 {
         if(!shift)return val;
         return (val>>shift)|(val<<(32-shift));
@@ -568,7 +555,6 @@ unsigned char * _arm_Init()
 
 	MAS_Access_Exept=false;
 
-#ifndef DREAMCAST
         profiling=new uint32[(1024*1024*3)>>2];
         memset(profiling,0,RAMSIZE);
 
@@ -577,7 +563,6 @@ unsigned char * _arm_Init()
 
 		profiling3=new uint32[(1024*1024*3)>>2];
         memset(profiling3,0,RAMSIZE);
-#endif
 
 	CYCLES=0;
     for(i=0;i<16;i++)
@@ -593,25 +578,13 @@ unsigned char * _arm_Init()
         RON_CASH[i]=RON_FIQ[i]=0;
 
 	gSecondROM=0;
-
-#ifdef DREAMCAST
-	pRam=new uint8[RAMSIZE];
+	pRam=new uint8[RAMSIZE+1024*1024*16];
 	pRom=new uint8[ROMSIZE*2];
 	pNVRam=new uint8[NVRAMSIZE];
 
-    memset( pRam, 0, RAMSIZE);
-    memset( pRom, 0, ROMSIZE);
-    memset( pNVRam,0, NVRAMSIZE);
-#else
-	pRam=new uint8[RAMSIZE];  /*3doh fix - wrong ramsize???? */
-	pRom=new uint8[ROMSIZE*2];
-	pNVRam=new uint8[NVRAMSIZE];
-
-    memset( pRam, 0, RAMSIZE); /*3doh fix - wrong ramsize???? */
+    memset( pRam, 0, RAMSIZE+1024*1024*16);
     memset( pRom, 0, ROMSIZE*2);
     memset( pNVRam,0, NVRAMSIZE);
-
-#endif
     gFIQ=false;
 
 	io_interface(EXT_READ_NVRAM,pNVRam);//_3do_LoadNVRAM(pNVRam);
@@ -824,7 +797,7 @@ void __fastcall stm_accur(unsigned int opc, unsigned int base, unsigned int rn_i
 
 
 
-static void inline bdt_core(unsigned int opc)
+void __fastcall  bdt_core(unsigned int opc)
 {
  unsigned int base,rn_ind;
 
@@ -839,7 +812,7 @@ static void inline bdt_core(unsigned int opc)
 	else base=RON_USER[rn_ind];
 
 
-    if(opc&(1<<20))	//memory or register?
+        if(opc&(1<<20))	//memory or register?
 	{
 		if(opc&0x8000)CYCLES-=SCYCLE+NCYCLE;
 
@@ -888,7 +861,7 @@ void ARM_SET_C(uint32 x)
 #define ARM_SET_N(x)    (CPSR=((CPSR&0x7fffffff)|((x)&0x80000000)))
 #define ARM_GET_C       ((CPSR>>29)&1)
 
-static inline void ARM_SET_ZN(uint32 val)
+__inline void ARM_SET_ZN(uint32 val)
 {
         if(val)
                 CPSR=((CPSR&0x3fffffff)|(val&0x80000000));
@@ -896,7 +869,7 @@ static inline void ARM_SET_ZN(uint32 val)
                 CPSR=((CPSR&0x3fffffff)|0x40000000);
 }
 
-static inline void ARM_SET_CV(uint32 rd, uint32 op1, uint32 op2)
+__inline void ARM_SET_CV(uint32 rd, uint32 op1, uint32 op2)
 {
     //old_C=(CPSR>>29)&1;
 
@@ -906,7 +879,7 @@ static inline void ARM_SET_CV(uint32 rd, uint32 op1, uint32 op2)
 
 }
 
-static inline void ARM_SET_CV_sub(uint32 rd, uint32 op1, uint32 op2)
+__inline void ARM_SET_CV_sub(uint32 rd, uint32 op1, uint32 op2)
 {
     //old_C=(CPSR>>29)&1;
 
@@ -917,7 +890,7 @@ static inline void ARM_SET_CV_sub(uint32 rd, uint32 op1, uint32 op2)
 }
 
 
-static inline bool __fastcall ARM_ALU_Exec(uint32 inst, uint8 opc, uint32 op1, uint32 op2, uint32 *Rd)
+bool __fastcall ARM_ALU_Exec(uint32 inst, uint8 opc, uint32 op1, uint32 op2, uint32 *Rd)
 {
  switch(opc)
  {
@@ -987,8 +960,6 @@ static inline bool __fastcall ARM_ALU_Exec(uint32 inst, uint8 opc, uint32 op1, u
         ARM_SET_ZN(*Rd);
         break;
    case 3:
-
-
         *Rd=op1^op2;
         ARM_SET_ZN(*Rd);
         break;
@@ -998,7 +969,6 @@ static inline bool __fastcall ARM_ALU_Exec(uint32 inst, uint8 opc, uint32 op1, u
         ARM_SET_CV_sub(*Rd,op1,op2);
         break;
    case 7:
-
         *Rd=op2-op1;
         ARM_SET_ZN(*Rd);
         ARM_SET_CV_sub(*Rd,op2,op1);
@@ -1207,21 +1177,22 @@ void __fastcall ARM_SWAP(uint32 cmd)
     }
 }
 
-
-
-
-/*3doh fix - check out if it works fine*/
-static inline int calcbits(unsigned int num)
+unsigned int calcbits(unsigned int num)
 {
-// unsigned int retval;
-// printf("calcbits %x\n",num);
-// 1111111122222222233333333
+ unsigned int retval;
+
  if(!num)return 1;
 
-// if(num>>16){num>>=16;retval=16;}
-	if((num&0xFFFF0000)&&(num&0x0000FFFF))return 32; //3doh fix
-	else return 0;	
+ if(num>>16){num>>=16;retval=16;}
+ else retval=0;
 
+ if(num>>8){num>>=8;retval+=8;}
+ if(num>>4){num>>=4;retval+=4;}
+ if(num>>2){num>>=2;retval+=2;}
+ if(num>>1){num>>=1;retval+=2;}
+ else if(num)retval++;
+
+ return retval;
 }
 
 unsigned int curr_pc;
@@ -1233,26 +1204,39 @@ const bool is_logic[]={
     true,true,true,true
     };
 
-void arm60_BRANCH(uint32 cmd)
+int __fastcall _arm_Execute()
 {
+    uint32 cmd,pc_tmp;
 
-					if(cmd&(1<<24))
+	//for(; CYCLES>0; CYCLES-=SCYCLE)
+	{
+ 		cmd=mreadw(REG_PC);
+
+                #ifdef DEBUG_CORE
+                if(REG_PC<0x00300000)
+                {
+                        profiling[REG_PC>>2]++;
+                }
+                #endif
+
+		curr_pc=REG_PC;
+
+
+		REG_PC+=4;
+
+                CYCLES=-SCYCLE;
+		//if(MAS_Access_Exept)
+
+		if(((cond_flags_cross[(((uint32)cmd)>>28)]>>((CPSR)>>28))&1))
+		{
+
+			switch((cmd>>24)&0xf)  //разбор типа команды
+			{
+			case 0x0:	//Multiply
+
+					if ((cmd & ARM_MUL_MASK) == ARM_MUL_SIGN)
 					{
-						RON_USER[14]=REG_PC;
-					}
-					REG_PC+=(((cmd&0xffffff)|((cmd&0x800000)?0xff000000:0))<<2)+4;
-
-
-
-					CYCLES-=SCYCLE+NCYCLE; //2S+1N
-
-}
-
-void arm60_MULT(unsigned int cmd)
-{
-
-					unsigned int res;
-
+						unsigned int res;
 
 						res=((calcbits(RON_USER[(cmd>>8)&0xf])+5)>>1)-1;
 						if(res>16)CYCLES-=16;
@@ -1261,33 +1245,25 @@ void arm60_MULT(unsigned int cmd)
 						if(((cmd>>16)&0xf)==(cmd&0xf))
 						{
 							if (cmd&(1<<21))
-//							switch(cmd)
-                            {
-//							case 0x10000:
-                            	REG_PC+=8;
-                            	res=RON_USER[(cmd>>12)&0xf];
-                                REG_PC-=8;
-//								break;
-                            }
-                            else
-							{
-//							default:
-                                res=0;
-//								break;
-							}
+                                                        {
+                                                                REG_PC+=8;
+                                                                res=RON_USER[(cmd>>12)&0xf];
+                                                                REG_PC-=8;
+                                                        }
+                                                        else
+                                                                res=0;
 						}
 						else
 						{
 							if (cmd&(1<<21))
-//							switch
-                            {
-                            	res=RON_USER[cmd&0xf]*RON_USER[(cmd>>8)&0xf];
-                                REG_PC+=8;
-                                res+=RON_USER[(cmd>>12)&0xf];
-                                REG_PC-=8;
-                            }
-                            else
-                                res=RON_USER[cmd&0xf]*RON_USER[(cmd>>8)&0xf];
+                                                        {
+                                                                res=RON_USER[cmd&0xf]*RON_USER[(cmd>>8)&0xf];
+                                                                REG_PC+=8;
+                                                                res+=RON_USER[(cmd>>12)&0xf];
+                                                                REG_PC-=8;
+                                                        }
+                                                        else
+                                                                res=RON_USER[cmd&0xf]*RON_USER[(cmd>>8)&0xf];
 						}
 						if(cmd&(1<<20))
 						{
@@ -1295,16 +1271,117 @@ void arm60_MULT(unsigned int cmd)
 						}
 
 						RON_USER[(cmd>>16)&0xf]=res;
-					
-
-}
-
-void arm60_SDT(uint32 cmd)
-{
-
+						break;
+					}
+			case 0x1:	//Single Data Swap
+					if ((cmd & ARM_SDS_MASK) == ARM_SDS_SIGN)
+					{
+						ARM_SWAP(cmd);
+						//if(MAS_Access_Exept)
+						CYCLES-=2*NCYCLE+ICYCLE;
+						break;
+					}
+			case 0x2:	//ALU
+			case 0x3:
+                    uint32 op2,op1;
+                                        //uint8 tmp;
 					uint8 shift,shtype;
-					uint32 pc_tmp,cmd_tmp;
 
+                    if((cmd&0x2000090)!=0x90)
+                    {
+							  /////////////////////////////////////////////SHIFT
+                                pc_tmp=REG_PC;
+                                REG_PC+=4;
+								if (cmd&(1<<25))
+								{
+									op2=cmd&0xff;
+									if(((cmd>>7)&0x1e))
+									{
+										op2=_rotr(op2, (cmd>>7)&0x1e);
+										//if((cmd&(1<<20))) SETC(((cmd&0xff)>>(((cmd>>7)&0x1e)-1))&1);
+									}
+									op1=RON_USER[(cmd>>16)&0xf];
+								}
+								else
+								{
+									shtype=(cmd>>5)&0x3;
+									if(cmd&(1<<4))
+									{
+										shift=((cmd>>8)&0xf);
+										shift=(RON_USER[shift])&0xff;
+                                                                                REG_PC+=4;
+										op2=RON_USER[cmd&0xf];
+										op1=RON_USER[(cmd>>16)&0xf];
+										CYCLES-=ICYCLE;
+									}
+									else
+									{
+										shift=(cmd>>7)&0x1f;
+
+										if(!shift)
+										{
+											if(shtype)
+											{
+												if(shtype==3)shtype++;
+												else shift=32;
+											}
+										}
+										op2=RON_USER[cmd&0xf];
+										op1=RON_USER[(cmd>>16)&0xf];
+									}
+
+
+									//if((cmd&(1<<20)) && is_logic[((cmd>>21)&0xf)] ) op2=ARM_SHIFT_SC(op2, shift, shtype);
+									//else
+                                        op2=ARM_SHIFT_NSC(op2, shift, shtype);
+
+								}
+
+                              REG_PC=pc_tmp;
+
+                              if((cmd&(1<<20)) && is_logic[((cmd>>21)&0xf)] ) ARM_SET_C(carry_out);
+
+
+							  if(ARM_ALU_Exec(cmd, (cmd>>20)&0x1f ,op1,op2,&RON_USER[(cmd>>12)&0xf]))
+							  {
+										break;
+							  }
+
+
+							  if(((cmd>>12)&0xf)==0xf) //destination = pc, take care of cpsr
+							  {
+								if(cmd&(1<<20))
+								{
+									_arm_SetCPSR(SPSR[arm_mode_table[MODE]]);
+								}
+
+								CYCLES-=ICYCLE+NCYCLE;
+
+							  }
+							  break;
+                    }
+			case 0x6:	//Undefined
+			case 0x7:
+
+    Undefine:
+				if((cmd&ARM_UND_MASK)==ARM_UND_SIGN)
+				{
+					//!!Exeption!!
+                               //         io_interface(EXT_DEBUG_PRINT,(void*)str.print("*PC: 0x%8.8X undefined\n",REG_PC).CStr());
+
+					SPSR[arm_mode_table[0x1b]]=CPSR;
+					SETI(1);
+					SETM(0x1b);
+					load(14,REG_PC);
+					REG_PC=0x00000004;  // (-4) fetch!!!
+					CYCLES-=SCYCLE+NCYCLE; // +2S+1N
+					break;
+				}
+			case 0x4:	//Single Data Transfer
+			case 0x5:
+
+                if((cmd&0x2000090)!=0x2000090)
+                {
 					  unsigned int base,tbas;
 					  unsigned int oper2;
 					  unsigned int val, rora;
@@ -1312,57 +1389,34 @@ void arm60_SDT(uint32 cmd)
 
                       pc_tmp=REG_PC;
                       REG_PC+=4;
-					  cmd_tmp=cmd>>25&0x1;
-					  switch(cmd_tmp)
-//					  if(cmd&(1<<25)) //inmediate
+					  if(cmd&(1<<25))
 					  {
-					  case 1:
                             shtype=(cmd>>5)&0x3;
-							cmd_tmp=cmd>>4&0x1;
-								switch(cmd_tmp)
-        //                    if(cmd&(1<<4))
-								{
-								case 1:
-                          //      shift=((cmd>>8)&0xf);
-                                	shift=(RON_USER[(cmd>>8)&0xf])&0xff;
-	                                REG_PC+=4;
-									break;
-          //	                  }
-          //                  else
-          //                  {
-								default:
-    	                            shift=(cmd>>7)&0x1f;
-    	                            if(!shift) //revisar
-    	                            {
-//                                   if(shtype)
-										switch(shtype)
-										{
-										case 0:
-											break;
-										case 3:
-											shtype++;
-											break;
-										default:
-											shift=32;
-											break;
-										};
-//                                    {
-//                                       if(shtype==3)shtype++;
-//                                        else shift=32;
+                            if(cmd&(1<<4))
+                            {
+                                shift=((cmd>>8)&0xf);
+                                shift=(RON_USER[shift])&0xff;
+                                REG_PC+=4;
+                            }
+                            else
+                            {
+                                shift=(cmd>>7)&0x1f;
+                                if(!shift)
+                                {
+                                    if(shtype)
+                                    {
+                                        if(shtype==3)shtype++;
+                                        else shift=32;
                                     }
-									break;
-								};
-//                            }
+                                }
+                            }
 							oper2=ARM_SHIFT_NSC(RON_USER[cmd&0xf], shift, shtype);
 
-//					  }
-					  break;
-//					  else
-//					  {
-					  default:
+					  }
+					  else
+					  {
 							oper2=(cmd&0xfff);
-							break;
-					  };
+					  }
 
 
 					  tbas=base=RON_USER[((cmd>>16)&0xf)];
@@ -1427,10 +1481,54 @@ void arm60_SDT(uint32 cmd)
 					  //if(MAS_Access_Exept)
 
 
-}
+					break;
+                }
+                else goto Undefine;
 
-void arm60_COPRO(uint32 cmd)
-{
+			case 0x8:	//Block Data Transfer
+			case 0x9:
+
+				  bdt_core(cmd);
+				  /*if(MAS_Access_Exept)
+				  {
+							//sprintf(str,"*PC: 0x%8.8X DataAbort!!!\n",REG_PC);
+							//CDebug::DPrint(str);
+							//!!Exeption!!
+
+							SPSR[arm_mode_table[0x17]]=CPSR;
+							SETI(1);
+							SETM(0x17);
+							load(14,REG_PC+4);
+							REG_PC=0x00000010;
+							CYCLES-=SCYCLE+NCYCLE;
+							MAS_Access_Exept=false;
+							break;
+				  } */
+
+
+				break;
+
+			case 0xa:	//BRANCH
+			case 0xb:
+					if(cmd&(1<<24))
+					{
+						RON_USER[14]=REG_PC;
+					}
+					REG_PC+=(((cmd&0xffffff)|((cmd&0x800000)?0xff000000:0))<<2)+4;
+
+
+
+					CYCLES-=SCYCLE+NCYCLE; //2S+1N
+
+					break;
+
+			case 0xf:	//SWI
+					decode_swi(cmd);
+					break;
+			//---------
+                        default:	//coprocessor
+					//!!Exeption!!
+                                        //io_interface(EXT_DEBUG_PRINT,(void*)str.print("*PC: 0x%8.8X undefined\n",REG_PC).CStr());
 
 					SPSR[arm_mode_table[0x1b]]=CPSR;
 					SETI(1);
@@ -1438,317 +1536,10 @@ void arm60_COPRO(uint32 cmd)
 					load(14,REG_PC);
 					REG_PC=0x00000004;
 					CYCLES-=SCYCLE+NCYCLE;
-
-}
-
-
-void arm60_ALU(uint32 cmd)
-{
-
-					uint8 shift,shtype;
-                    uint32 op2,op1,pc_tmp;
-							  /////////////////////////////////////////////SHIFT
-                                pc_tmp=REG_PC;
-                                REG_PC+=4;
-								if (cmd&(1<<25))
-								{
-									op2=cmd&0xff;
-									if(((cmd>>7)&0x1e))
-									{
-										op2=_rotr(op2, (cmd>>7)&0x1e);
-									}
-									op1=RON_USER[(cmd>>16)&0xf];
-								}
-								else
-								{
-									shtype=(cmd>>5)&0x3;
-									if(cmd&(1<<4))
-									{
-										shift=((cmd>>8)&0xf);
-										shift=(RON_USER[shift])&0xff;
-                                        REG_PC+=4;
-										op2=RON_USER[cmd&0xf];
-										op1=RON_USER[(cmd>>16)&0xf];
-										CYCLES-=ICYCLE;
-									}
-									else
-									{
-										shift=(cmd>>7)&0x1f;
-
-										if(!shift)
-										{
-											if(shtype)
-											{
-												if(shtype==3)shtype++;
-												else shift=32;
-											}
-										}
-										op2=RON_USER[cmd&0xf];
-										op1=RON_USER[(cmd>>16)&0xf];
-									}
-                                        op2=ARM_SHIFT_NSC(op2, shift, shtype);
-								}
-
-                              REG_PC=pc_tmp;
-
-                              if((cmd&(1<<20)) && is_logic[((cmd>>21)&0xf)] ) ARM_SET_C(carry_out);
-
-//static inline bool __fastcall ARM_ALU_Exec(uint32 inst, uint8 opc, uint32 op1, uint32 op2, uint32 *Rd)
-//							  if(ARM_ALU_Exec(cmd, (cmd>>20)&0x1f ,op1,op2,&RON_USER[(cmd>>12)&0xf]))
-//							  {
-
-									switch((cmd>>20)&0x1f)
-									 {
-									   case 0:
-											RON_USER[(cmd>>12)&0xf]=op1&op2;
-											break;
-									   case 2:
-											RON_USER[(cmd>>12)&0xf]=op1^op2;
-											break;
-									   case 4:
-											RON_USER[(cmd>>12)&0xf]=op1-op2;
-											break;
-									   case 6:
-											RON_USER[(cmd>>12)&0xf]=op2-op1;
-											break;
-									   case 8:
-											RON_USER[(cmd>>12)&0xf]=op1+op2;
-											break;
-									   case 10:
-											RON_USER[(cmd>>12)&0xf]=op1+op2+ARM_GET_C;
-											break;
-									   case 12:
-											RON_USER[(cmd>>12)&0xf]=op1-op2-(ARM_GET_C^1);
-											break;
-									   case 14:
-											RON_USER[(cmd>>12)&0xf]=op2-op1-(ARM_GET_C^1);
-											break;
-									   case 16:
-									   case 20:
-											if((cmd>>22)&1)
-												RON_USER[(cmd>>12)&0xf]=SPSR[arm_mode_table[CPSR&0x1f]];
-											else
-												RON_USER[(cmd>>12)&0xf]=CPSR;
-
-											return;
-									   case 18:
-									   case 22:
-											if(!((cmd>>16)&0x1) || !(arm_mode_table[MODE]))
-											{
-												if((cmd>>22)&1)
-													SPSR[arm_mode_table[MODE]]=(SPSR[arm_mode_table[MODE]]&0x0fffffff)|(op2&0xf0000000);
-												else
-													CPSR=(CPSR&0x0fffffff)|(op2&0xf0000000);
-											}
-											else
-											{
-												if((cmd>>22)&1)
-													SPSR[arm_mode_table[MODE]]=op2&0xf00000df;
-												else
-													_arm_SetCPSR(op2);
-											}
-											return;
-									   case 24:
-											RON_USER[(cmd>>12)&0xf]=op1|op2;
-											break;
-									   case 26:
-											RON_USER[(cmd>>12)&0xf]=op2;
-											break;
-									   case 28:
-											RON_USER[(cmd>>12)&0xf]=op1&(~op2);
-											break;
-									   case 30:
-											RON_USER[(cmd>>12)&0xf]=~op2;
-											break;
-									   case 1:
-											RON_USER[(cmd>>12)&0xf]=op1&op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									   case 3:
-											RON_USER[(cmd>>12)&0xf]=op1^op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									   case 5:
-											RON_USER[(cmd>>12)&0xf]=op1-op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV_sub(RON_USER[(cmd>>12)&0xf],op1,op2);
-											break;
-									   case 7:
-											RON_USER[(cmd>>12)&0xf]=op2-op1;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV_sub(RON_USER[(cmd>>12)&0xf],op2,op1);
-											break;
-									   case 9:
-											RON_USER[(cmd>>12)&0xf]=op1+op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV(RON_USER[(cmd>>12)&0xf],op1,op2);
-											break;
-									   case 11:
-											RON_USER[(cmd>>12)&0xf]=op1+op2+ARM_GET_C;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV(RON_USER[(cmd>>12)&0xf],op1,op2);
-											break;
-									   case 13:
-											RON_USER[(cmd>>12)&0xf]=op1-op2-(ARM_GET_C^1);
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV_sub(RON_USER[(cmd>>12)&0xf],op1,op2);
-											break;
-									   case 15:
-											RON_USER[(cmd>>12)&0xf]=op2-op1-(ARM_GET_C^1);
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											ARM_SET_CV_sub(RON_USER[(cmd>>12)&0xf],op2,op1);
-											break;//*/
-									   case 17:
-											op1&=op2;
-											ARM_SET_ZN(op1);
-											return;
-									   case 19:
-											op1^=op2;
-											ARM_SET_ZN(op1);
-											return;
-									   case 21:
-											ARM_SET_CV_sub(op1-op2,op1,op2);
-											ARM_SET_ZN(op1-op2);
-											return;
-									   case 23:
-											ARM_SET_CV(op1+op2,op1,op2);
-											ARM_SET_ZN(op1+op2);
-											return;
-									   case 25:
-											RON_USER[(cmd>>12)&0xf]=op1|op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									   case 27:
-											RON_USER[(cmd>>12)&0xf]=op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									   case 29:
-											RON_USER[(cmd>>12)&0xf]=op1&(~op2);
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									   case 31:
-											RON_USER[(cmd>>12)&0xf]=~op2;
-											ARM_SET_ZN(RON_USER[(cmd>>12)&0xf]);
-											break;
-									 };
-
-
-									//	return;
-							  
-							  if(((cmd>>12)&0xf)==0xf) //destination = pc, take care of cpsr
-							  {
-								if(cmd&(1<<20))
-								{
-									_arm_SetCPSR(SPSR[arm_mode_table[MODE]]);
-								}
-								CYCLES-=ICYCLE+NCYCLE;
-							  }
-
-}
-
-
-
-int __fastcall _arm_Execute()
-{
-    uint32 cmd,pc_tmp,cmd_tmp;
-
- 	cmd=mreadw(REG_PC);
-
-                #ifdef DEBUG_CORE
-                if(REG_PC<0x00300000)
-
-                {
-                        profiling[REG_PC>>2]++;
-                }
-                #endif
-
-	curr_pc=REG_PC;
-	REG_PC+=4;
-	CYCLES=-SCYCLE;
-		//if(MAS_Access_Exept)
-
-		if(((cond_flags_cross[(((uint32)cmd)>>28)]>>((CPSR)>>28))&1))
-		{
-
-			if ((cmd & 0x0fc000f0) == 0x00000090)    /* Multiplication */
-			{
-					arm60_MULT(cmd);
-//					printf("%x\n",cmd);
-			}
-			else if (!(cmd & 0x0c000000)) /* Data processing */
-			{
-//				HandleALU(cpustate, insn);
-//				arm60_ALU(cmd);
-//				printf("%x\n",cmd);
-			}
-			else if ((cmd & 0x0c000000) == 0x04000000) /* Single data access */
-			{
-				arm60_SDT(cmd);
-//				HandleMemSingle(cpustate, insn);
-//				R15 += 4;
-			}
-			else if ((cmd & 0x0e000000) == 0x08000000 ) /* Block data access */
-			{
-//				HandleMemBlock(cpustate, insn);
-//				R15 += 4;
-				bdt_core(cmd);
-			}
-			else if ((cmd & 0x0e000000) == 0x0a000000)   /* Branch */
-			{
-//				HandleBranch(cpustate, insn);
-				arm60_BRANCH(cmd);
-			}
-			else if ((cmd & 0x0f000000) == 0x0e000000)   /* Coprocessor */
-			{
-	//			HandleCoPro(cpustate, insn);
-//				R15 += 4;
-				arm60_COPRO(cmd);
-			}
-			else if ((cmd & 0x0f000000) == 0x0f000000)   /* Software interrupt */
-			{
-				decode_swi(cmd);
-			}
-			else /* Undefined */
-			{
-					SPSR[arm_mode_table[0x1b]]=CPSR;
-					SETI(1);
-					SETM(0x1b);
-					load(14,REG_PC);
-					REG_PC=0x00000004;  // (-4) fetch!!!
-					CYCLES-=SCYCLE+NCYCLE; // +2S+1N
-//					break;
-			}
-
-/*************************************************************************************************/
-			switch((cmd>>24)&0xf) 
-			{
-			case 0x8:	//Block Data Transfer
-			case 0x9:
-//				bdt_core(cmd);
-				break;
-			case 0x0:	//Multiply
-				if ((cmd & ARM_MUL_MASK) == ARM_MUL_SIGN)
-				{
-//					arm60_MULT(cmd);
 					break;
-				}
-			case 0x1:	//Single Data Swap
-					if ((cmd & ARM_SDS_MASK) == ARM_SDS_SIGN)
-					{
-						ARM_SWAP(cmd);
-						CYCLES-=2*NCYCLE+ICYCLE;
-						break;
-					}
-			case 0x2:	//ALU
-			case 0x3:
-                    if((cmd&0x2000090)!=0x90)
-                    {
-							arm60_ALU(cmd);
-//					printf("%x\n",cmd);
-							  break;
-                    }
 
 			};
+
 
 		}	//condition
 
@@ -1768,7 +1559,7 @@ int __fastcall _arm_Execute()
 					REG_PC=0x0000001c;//1c
 			}
 
-//	} // for(CYCLES)
+	} // for(CYCLES)
 
 
 	return -CYCLES;
@@ -1778,29 +1569,26 @@ int __fastcall _arm_Execute()
 void __fastcall _mem_write8(unsigned int addr, unsigned char val)
 {
 	    pRam[addr]=val;
-//		return;
-	//    if(addr<0x200000 || !RESSCALE) return;
-    //    pRam[addr+1024*1024]=val;
-//        pRam[addr+2*1024*1024]=val;  //3doh fix
-//        pRam[addr+3*1024*1024]=val;  //3doh fix
+	    if(addr<0x200000 || !RESSCALE) return;
+        pRam[addr+1024*1024]=val;
+        pRam[addr+2*1024*1024]=val;
+        pRam[addr+3*1024*1024]=val;
 }
 void __fastcall _mem_write16(unsigned int addr, unsigned short val)
 {
         *((unsigned short*)&pRam[addr])=val;
-//		return;
-    //    if(addr<0x200000 || !RESSCALE) return;
-    //    *((unsigned short*)&pRam[addr+1024*1024])=val;
-//        *((unsigned short*)&pRam[addr+2*1024*1024])=val;  //3doh fix
-//        *((unsigned short*)&pRam[addr+3*1024*1024])=val;  //3doh fix
+        if(addr<0x200000 || !RESSCALE) return;
+        *((unsigned short*)&pRam[addr+1024*1024])=val;
+        *((unsigned short*)&pRam[addr+2*1024*1024])=val;
+        *((unsigned short*)&pRam[addr+3*1024*1024])=val;
 }
 void __fastcall _mem_write32(unsigned int addr, unsigned int val)
 {
 	    *((unsigned int*)&pRam[addr])=val;
-//		return; //3doh
-     //3doh   if(addr<0x200000 || !RESSCALE) return;
-     //3doh   *((unsigned int*)&pRam[addr+1024*1024])=val;
-//        *((unsigned int*)&pRam[addr+2*1024*1024])=val;  //3doh fix
-//        *((unsigned int*)&pRam[addr+3*1024*1024])=val;  //3doh fix
+        if(addr<0x200000 || !RESSCALE) return;
+        *((unsigned int*)&pRam[addr+1024*1024])=val;
+        *((unsigned int*)&pRam[addr+2*1024*1024])=val;
+        *((unsigned int*)&pRam[addr+3*1024*1024])=val;
 }
 
 unsigned short __fastcall _mem_read16(unsigned int addr)
@@ -1811,13 +1599,7 @@ unsigned int __fastcall _mem_read32(unsigned int addr)
 {
         return *((unsigned int*)&pRam[addr]);
 }
-static inline unsigned char _mem_read8(unsigned int addr)
-{
-        return pRam[addr];
-}
-
-unsigned char memread8(unsigned int addr)
-//unsigned char _mem_read8(unsigned int addr)
+unsigned char __fastcall _mem_read8(unsigned int addr)
 {
         return pRam[addr];
 }
@@ -1829,20 +1611,14 @@ void __fastcall mwritew(unsigned int addr, unsigned int val)
     //to do -- add proper loging
     unsigned int index;
 
+	addr&=~3;
+
+
     if (addr<0x00300000) //dram1&dram2&vram
     {
         _mem_write32(addr,val);
         return;
     }
-
-	addr&=~3;
-
-
-/*    if (addr<0x00300000) //dram1&dram2&vram
-    {
-        _mem_write32(addr,val);
-        return;
-    }*/
 
     if (!((index=(addr^0x03300000)) & ~0x7FF)) //madam
 //  if((addr & ~0xFFFFF)==0x03300000) //madam
@@ -1904,21 +1680,14 @@ unsigned int __fastcall mreadw(unsigned int addr)
     unsigned int val;
     int index;
 
-	/*prueba*/
-    if (addr<0x00300000) //dram1&dram2&vram
-    {
-		//return _mem_read32(addr);
-		return *((unsigned int*)&pRam[addr]);
-    }
-
 	addr&=~3;
 
-/*    if (addr<0x00300000) //dram1&dram2&vram
+
+
+    if (addr<0x00300000) //dram1&dram2&vram
     {
 		return _mem_read32(addr);
-    }*/
-
-
+    }
 
     if (!((index=(addr^0x03300000)) & ~0xFFFFF)) //madam
     {

@@ -26,8 +26,6 @@ Felix Lazarev
 
 #include "types.h"
 
-		extern uint8 *getpram();
-
 class BitReaderBig
 {
 protected:
@@ -35,7 +33,6 @@ protected:
 	uint32 point;
 	int32 bitpoint;
 	int32 bitset;
-	uint8* pram;
 public:
 	BitReaderBig()
     {
@@ -43,7 +40,6 @@ public:
         bitset=1;
         point=0;
 		bitpoint=0;
-		pram=getpram();
     };
 	BitReaderBig(uint32 buff)
 	{
@@ -51,7 +47,6 @@ public:
 		point=0;
 		bitpoint=0;
 		bitset=1;
-		pram=getpram();
 	};
     void AttachBuffer(uint32 buff)
 	{

@@ -24,13 +24,8 @@ Felix Lazarev
 // Iso.cpp: implementation of the CIso class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <stdint.h>
 #include "freedoconfig.h"
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 #include "IsoXBUS.h"
 #include "types.h"
 
@@ -1342,7 +1337,7 @@ void* _xbplug_MainDevice(int proc, void* data)
 		        isodrive.InitCD();
 		break;
 	case XBP_SET_COMMAND:
-		isodrive.SendCommand((intptr_t)data);
+		isodrive.SendCommand((unsigned int)data);
 		break;
 	case XBP_FIQ:
 		return (void*)isodrive.TestFIQ();
@@ -1351,7 +1346,7 @@ void* _xbplug_MainDevice(int proc, void* data)
 	case XBP_GET_STATUS:
 		return (void*)isodrive.GetStatusFifo();
 	case XBP_SET_POLL:
-		isodrive.SetPoll((intptr_t)data);
+		isodrive.SetPoll((unsigned int)data);
 		break;
 	case XBP_GET_POLL:
 		return (void*)isodrive.GetPoll();

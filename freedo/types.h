@@ -28,17 +28,13 @@ Copyright (C) 2007-2008 Maxim Grishin (http://altmer.arts-union.ru)
 #ifndef TYPES_HEAD_DEFINITION
 #define TYPES_HEAD_DEFINITION
 
-#ifndef DREAMCAST
 typedef  unsigned int uint32;
-#endif
 typedef  unsigned char uint8;
 typedef  unsigned short uint16;
 typedef  unsigned long long uint64;
 typedef  unsigned long long __uint64;
 
-#ifndef DREAMCAST
 typedef  int int32;
-#endif
 typedef  char int8;
 typedef  short int16;
 typedef  signed long long int64;

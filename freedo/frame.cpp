@@ -26,9 +26,7 @@ void _frame_Init()
 	}
 }
 
-extern "C"
-{
-/*void Get_Frame_Bitmap(
+void Get_Frame_Bitmap(
 	VDLFrame* sourceFrame,
 	void* destinationBitmap,
 	int destinationBitmapWidth,
@@ -40,20 +38,9 @@ extern "C"
 	bool allowCrop,
 	ScalingAlgorithm scalingAlgorithm,
 	int* resultingWidth,
-	int* resultingHeight)*/
-
-void Get_Frame_Bitmap(
-	VDLFrame* sourceFrame,
-	void* destinationBitmap,
-	int destinationBitmapWidth,
-	int copyWidth,
-	int copyHeight,
-	int addBlackBorder,
-	int copyPointlessAlphaByte,
-	int allowCrop
-	)
+	int* resultingHeight)
 {
-/*	setCurrentAlgorithm(0);
+	setCurrentAlgorithm(0);
 
 	float maxCropPercent = allowCrop ? .25f : 0;
 	int maxCropTall = (int)(copyHeight * maxCropPercent);
@@ -61,70 +48,60 @@ void Get_Frame_Bitmap(
 
 //	printf("mx:%f\n",maxCropPercent);
 
-/*	bitmapCrop->top = maxCropTall;
+	bitmapCrop->top = maxCropTall;
 	bitmapCrop->left = maxCropWide;
 	bitmapCrop->right = maxCropWide;
-	bitmapCrop->bottom = maxCropTall;*/
+	bitmapCrop->bottom = maxCropTall;
 
-//	int pointlessAlphaByte = copyPointlessAlphaByte ? 1 : 0;
+	int pointlessAlphaByte = copyPointlessAlphaByte ? 1 : 0;
 
 	// Destination will be directly changed if there is no scaling algorithm.
 	// Otherwise we extract to a temporary buffer.
 	char* destPtr;
-//	if (currentAlgorithm == 0)
+	if (currentAlgorithm == 0)
 		destPtr = (char*)destinationBitmap;
-//	else
-//		destPtr = (char*)tempBitmap;
+	else
+		destPtr = (char*)tempBitmap;
 
-//	VDLFrame* framePtr = sourceFrame;
+	VDLFrame* framePtr = sourceFrame;
 	for (int line = 0; line < copyHeight; line++)
 	{
-//		VDLLine* linePtr = &framePtr->lines[line];
-		VDLLine* linePtr = &sourceFrame->lines[line];
+		VDLLine* linePtr = &framePtr->lines[line];
 		short* srcPtr = (short*)linePtr;
 		bool allowFixedClut = (linePtr->xOUTCONTROLL & 0x2000000) > 0;
 		for (int pix = 0; pix < copyWidth; pix++)
 		{
-//			char bPart = 0;
-//			char gPart = 0;
-//			char rPart = 0;
+			char bPart = 0;
+			char gPart = 0;
+			char rPart = 0;
 			if (*srcPtr == 0)
 			{
-//				bPart = (char)(linePtr->xBACKGROUND & 0x1F);
-//				gPart = (char)((linePtr->xBACKGROUND >> 5) & 0x1F);
-//				rPart = (char)((linePtr->xBACKGROUND >> 10) & 0x1F);
-				*destPtr++ = (char)(linePtr->xBACKGROUND & 0x1F);
-				*destPtr++ = (char)((linePtr->xBACKGROUND >> 5) & 0x1F);
-				*destPtr++ = (char)((linePtr->xBACKGROUND >> 10) & 0x1F);
+				bPart = (char)(linePtr->xBACKGROUND & 0x1F);
+				gPart = (char)((linePtr->xBACKGROUND >> 5) & 0x1F);
+				rPart = (char)((linePtr->xBACKGROUND >> 10) & 0x1F);
 			}
 			else if (allowFixedClut && (*srcPtr & 0x8000) > 0)
 			{
-//				bPart = FIXED_CLUTB[(*srcPtr) & 0x1F];
-//				gPart = FIXED_CLUTG[((*srcPtr) >> 5) & 0x1F];
-//				rPart = FIXED_CLUTR[(*srcPtr) >> 10 & 0x1F];
-				*destPtr++ = FIXED_CLUTB[(*srcPtr) & 0x1F];
-				*destPtr++ = FIXED_CLUTG[((*srcPtr) >> 5) & 0x1F];
-				*destPtr++ = FIXED_CLUTR[(*srcPtr) >> 10 & 0x1F];
+				bPart = FIXED_CLUTB[(*srcPtr) & 0x1F];
+				gPart = FIXED_CLUTG[((*srcPtr) >> 5) & 0x1F];
+				rPart = FIXED_CLUTR[(*srcPtr) >> 10 & 0x1F];
 			}
 			else
 			{
-//				bPart = (char)(linePtr->xCLUTB[(*srcPtr) & 0x1F]);
-//				gPart = linePtr->xCLUTG[((*srcPtr) >> 5) & 0x1F];
-//				rPart = linePtr->xCLUTR[(*srcPtr) >> 10 & 0x1F];
-				*destPtr++ = (char)(linePtr->xCLUTB[(*srcPtr) & 0x1F]);
-				*destPtr++ = linePtr->xCLUTG[((*srcPtr) >> 5) & 0x1F];
-				*destPtr++ = linePtr->xCLUTR[(*srcPtr) >> 10 & 0x1F];
+				bPart = (char)(linePtr->xCLUTB[(*srcPtr) & 0x1F]);
+				gPart = linePtr->xCLUTG[((*srcPtr) >> 5) & 0x1F];
+				rPart = linePtr->xCLUTR[(*srcPtr) >> 10 & 0x1F];
 			}
-//			*destPtr++ = bPart;
-//			*destPtr++ = gPart;
-//			*destPtr++ = rPart;
+			*destPtr++ = bPart;
+			*destPtr++ = gPart;
+			*destPtr++ = rPart;
 
 //			printf("R:%d G:%d B:%d\n",rPart,gPart,bPart);
 
-			destPtr += copyPointlessAlphaByte;
+			destPtr += pointlessAlphaByte;
 			srcPtr++;
 
-/*			if (line < bitmapCrop->top)
+			if (line < bitmapCrop->top)
 				if (!(rPart < 0xF && gPart < 0xF && bPart < 0xF))
 					bitmapCrop->top = line;
 
@@ -139,11 +116,10 @@ void Get_Frame_Bitmap(
 			if (line > copyHeight - bitmapCrop->bottom - 1)
 				if (!(rPart < 0xF && gPart < 0xF && bPart < 0xF))
 					bitmapCrop->bottom = copyHeight - line - 1;
-*/
 		}
 	}
 
-/*	int cropAdjust = 1;
+	int cropAdjust = 1;
 	switch (currentAlgorithm)
 	{
 	case 0:
@@ -169,15 +145,14 @@ void Get_Frame_Bitmap(
 	bitmapCrop->bottom *= cropAdjust;
 
 	*resultingWidth = copyWidth * cropAdjust;
-	*resultingHeight = copyHeight * cropAdjust;*/
+	*resultingHeight = copyHeight * cropAdjust;
 }
-};
 
 void setCurrentAlgorithm(int algorithm)
 {
 	//////////////////
 	// De-initialize current (if necessary).
-/*	if (
+	if (
 		((currentAlgorithm == 1)
 		|| (currentAlgorithm == 2)
 		|| (currentAlgorithm == 3))
@@ -205,5 +180,5 @@ void setCurrentAlgorithm(int algorithm)
 	}
 
 	// Accept new current algorithm.
-	currentAlgorithm = algorithm;*/
+	currentAlgorithm = algorithm;
 }

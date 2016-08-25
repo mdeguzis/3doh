@@ -29,11 +29,7 @@ Felix Lazarev
 
 #include "vdlp.h"
 #include "arm.h"
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 
 #include "freedocore.h"
 
@@ -137,11 +133,11 @@ unsigned int vmreadw(unsigned int addr);
 void _vdl_ProcessVDL( unsigned int addr)
 {
 	HEADVDL=addr;
-//	printf("entra aca\n");
-//	if((addr&0xfff00000)!=0x200000)
-//	{
+
+	if((addr&0xfff00000)!=0x200000)
+	{
                 //io_interface(EXT_DEBUG_PRINT,(void*)str.print("!!!!VDLP!!!! VDLP code out of VRAM boundaries!!! 0x%8.8X",addr).CStr());
-//	}
+	}
 
 }
 
@@ -161,7 +157,7 @@ __inline void VDLExec()
 		if(tmp==0) // End of list
 		{
 			linedelay=511;
-            doloadclut=false;
+                        doloadclut=false;
 		}
 		else
 		{
@@ -187,7 +183,7 @@ __inline void VDLExec()
 				int cmd=vmreadw(CURRENTVDL);
 				CURRENTVDL+=4;
 
-				    if(!(cmd&0x80000000))
+				        if(!(cmd&0x80000000))
 					{	//color value
 
 						unsigned int coloridx=(cmd&VDL_PEN_MASK)>>VDL_PEN_SHIFT;
@@ -197,11 +193,11 @@ __inline void VDLExec()
 							CLUTG[coloridx]=(cmd&VDL_G_MASK)>>VDL_G_SHIFT;
 							CLUTB[coloridx]=(cmd&VDL_B_MASK)>>VDL_B_SHIFT;
 						}
-                        else if((cmd&VDL_RGBCTL_MASK)==VDL_REDONLY)
+                                                else if((cmd&VDL_RGBCTL_MASK)==VDL_REDONLY)
 							CLUTR[coloridx]=(cmd&VDL_R_MASK)>>VDL_R_SHIFT;
-                        else if((cmd&VDL_RGBCTL_MASK)==VDL_GREENONLY)
+                                                else if((cmd&VDL_RGBCTL_MASK)==VDL_GREENONLY)
 							CLUTG[coloridx]=(cmd&VDL_G_MASK)>>VDL_G_SHIFT;
-                        else if((cmd&VDL_RGBCTL_MASK)==VDL_BLUEONLY)
+                                                else if((cmd&VDL_RGBCTL_MASK)==VDL_BLUEONLY)
 							CLUTB[coloridx]=(cmd&VDL_B_MASK)>>VDL_B_SHIFT;
 					}
 					else if((cmd&0xff000000)==VDL_BACKGROUND)
@@ -224,7 +220,7 @@ __inline void VDLExec()
 							ifgnorflag=OUTCONTROLL&2;
 							//if(!ifgnorflag)break;
 					}
-                    else if((unsigned int)cmd==0xffffffff)
+                                        else if((unsigned int)cmd==0xffffffff)
 					{
 						if(ifgnorflag)continue;
 						for(unsigned int j=0;j<32;j++)
@@ -232,19 +228,19 @@ __inline void VDLExec()
 							CLUTB[j]=CLUTG[j]=CLUTR[j]=((j&0x1f)<<3)|((j>>2)&7);
 						}
 					}
-/*					else if((cmd&0xff000000)!=0xE1000000 && (cmd&0xC0000000)!=0x80000000)
+					else if((cmd&0xff000000)!=0xE1000000 && (cmd&0xC0000000)!=0x80000000)
 					{
                                              //   io_interface(EXT_DEBUG_PRINT,(void*)str.print("::::VDLP:::: Unknown opcode... Comm=0x%8.8X",cmd).CStr());
-					}*/
+					}
 
 			}//for(i<nmcmd)
 			CURRENTVDL=NEXTVDL;
 
 			MODULO=HOWMAYPIXELEXPECTPERLINE[CLUTDMA.dmaw.modulo];
-/*                        if(MODULO!=320)
+                        if(MODULO!=320)
                         {
                                // io_interface(EXT_DEBUG_PRINT,(void*)str.print("::::VDLP:::: Nonstandard modulo... W=%d, DMAWORD=0x%8.8X",MODULO, CLUTDMA.raw).CStr());
-                        }*/
+                        }
                         doloadclut=((linedelay=CLUTDMA.dmaw.lines)!=0);
 		}
 }
@@ -281,7 +277,7 @@ void _vdl_DoLineNew(int line2x, VDLFrame *frame)
 
                 if(CLUTDMA.dmaw.enadma)
                 {
-/*                        if(RESSCALE)
+                        if(RESSCALE)
                         {
                                         unsigned short *dst1,*dst2;
                                         unsigned int *src1,*src2,*src3,*src4;
@@ -301,31 +297,31 @@ void _vdl_DoLineNew(int line2x, VDLFrame *frame)
                                         }
                         }
                         else
-                        {*/
+                        {
                                 unsigned short *dst;
                                 unsigned int *src;
                                 dst=frame->lines[y].line;
                                 src=(unsigned int*)(vram+((PREVIOUSBMP^2) & 0x0FFFFF));
                                 i=320;
                                 while(i--)*dst++=*(unsigned short*)(src++);
-//                        }
+                        }
                         memcpy(frame->lines[(y<<RESSCALE)].xCLUTB,CLUTB,32);
                         memcpy(frame->lines[(y<<RESSCALE)].xCLUTG,CLUTG,32);
                         memcpy(frame->lines[(y<<RESSCALE)].xCLUTR,CLUTR,32);
-/*                        if(RESSCALE)
+                        if(RESSCALE)
                         {
                                 memcpy(frame->lines[(y<<RESSCALE)+1].xCLUTB,frame->lines[(y<<RESSCALE)].xCLUTB,32*3);
-                        }*/
+                        }
                 }
                 frame->lines[(y<<RESSCALE)].xOUTCONTROLL=OUTCONTROLL;
                 frame->lines[(y<<RESSCALE)].xCLUTDMA=CLUTDMA.raw;
                 frame->lines[(y<<RESSCALE)].xBACKGROUND=BACKGROUND;
-/*                if(RESSCALE)
+                if(RESSCALE)
                 {
                         frame->lines[(y<<RESSCALE)+1].xOUTCONTROLL=OUTCONTROLL;
                         frame->lines[(y<<RESSCALE)+1].xCLUTDMA=CLUTDMA.raw;
                         frame->lines[(y<<RESSCALE)+1].xBACKGROUND=BACKGROUND;
-                }*/
+                }
 
 	} // //if((y>=0) && (y<240))
 

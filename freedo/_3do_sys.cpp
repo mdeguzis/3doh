@@ -20,7 +20,6 @@ Allen Wright
 John Sammons
 Felix Lazarev
 */
-#include <stdint.h>
 
 #include "freedoconfig.h"
 #include "freedocore.h"
@@ -35,7 +34,11 @@ Felix Lazarev
 #include "DiagPort.h"
 #include "quarz.h"
 
+#ifdef RETRO
+extern long SDL_GetTicks(void);
+#else
 #include <SDL/SDL.h>
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,7 +50,6 @@ extern void* Getp_NVRAM();
 extern void* Getp_ROMS();
 extern void* Getp_RAMS();
 
-
 __inline uint32 _bswap(uint32 x)
 {
 	return (x>>24) | ((x>>8)&0x0000FF00L) | ((x&0x0000FF00L)<<8) | (x<<24);
@@ -55,11 +57,6 @@ __inline uint32 _bswap(uint32 x)
 
 
 extern void* _xbplug_MainDevice(int proc, void* data);
-
-#ifdef DREAMCAST
-extern "C"
-{
-#endif
 int _3do_Init()
 {
  unsigned char *Memory;
@@ -67,16 +64,17 @@ int _3do_Init()
 
 	Memory=_arm_Init();
 
-    io_interface(EXT_READ_ROMS,Getp_ROMS());
-    rom=(unsigned char*)Getp_ROMS();
-    for(int i=(1024*1024*2)-4;i>=0;i-=4) *(int *)(rom+i)=_bswap(*(int *)(rom+i));
+        io_interface(EXT_READ_ROMS,Getp_ROMS());
+        rom=(unsigned char*)Getp_ROMS();
+        for(int i=(1024*1024*2)-4;i>=0;i-=4) *(int *)(rom+i)=_bswap(*(int *)(rom+i));
+
 	_vdl_Init(Memory+0x200000);   // Visible only VRAM to it
 	_sport_Init(Memory+0x200000);  // Visible only VRAM to it
 	_madam_Init(Memory);
 
-    _xbus_Init(_xbplug_MainDevice);
+        _xbus_Init(_xbplug_MainDevice);
 
-    _clio_Init(0x40); // 0x40 for start from  3D0-CD, 0x01/0x02 from PhotoCD ?? (NO use 0x40/0x02 for BIOS test)
+        _clio_Init(0x40); // 0x40 for start from  3D0-CD, 0x01/0x02 from PhotoCD ?? (NO use 0x40/0x02 for BIOS test)
 	_dsp_Init();
 	_diag_Init(-1);  // Select test, use -1 -- if d'nt need tests
 /*
@@ -113,9 +111,7 @@ FF	TEST END (halt)
 
         return 0;
 }
-#ifdef DREAMCAST
-};
-#endif
+
 
 VDLFrame *curr_frame;
 bool scipframe;
@@ -140,7 +136,7 @@ void _3do_InternalFrame(int cicles)
 
 
                 if(_qrz_QueueTimer())_clio_DoTimers();
-//				time_end=SDL_GetTicks();
+				time_end=SDL_GetTicks();
 
 
                 if(_qrz_QueueVDL())
@@ -160,9 +156,9 @@ void _3do_InternalFrame(int cicles)
                         if(line==_clio_v1line())
                         {
                                 _clio_GenerateFiq(1<<1,0);
-                                _madam_KeyPressed((unsigned char*)io_interface(EXT_GETP_PBUSDATA,NULL),((intptr_t)io_interface(EXT_GET_PBUSLEN,NULL)));
-                              //  curr_frame->srcw=320;
-                              //  curr_frame->srch=240;
+                                _madam_KeyPressed((unsigned char*)io_interface(EXT_GETP_PBUSDATA,NULL),(int)io_interface(EXT_GET_PBUSLEN,NULL));
+                                curr_frame->srcw=320;
+                                curr_frame->srch=240;
                                 if(!scipframe)curr_frame=(VDLFrame*)io_interface(EXT_SWAPFRAME,curr_frame);
                         }
 
@@ -185,18 +181,17 @@ int i,cnt=0;
 
         for(i=0;i<(12500000/60);)
         {
-
+// time_start=SDL_GetTicks();
                 if(Get_madam_FSM()==FSM_INPROCESS)
-               // if(mfsm==FSM_INPROCESS)
                 {
-			    	_madam_HandleCEL();
-		        	Set_madam_FSM(FSM_IDLE);
-                    continue;
+			_madam_HandleCEL();
+		        Set_madam_FSM(FSM_IDLE);
+                        continue;
                 }
 
                 cnt+=_arm_Execute();   
-
-
+//		time_end=SDL_GetTicks();
+//		if((time_end-time_start)>1)printf("time:%d %d\n",time_end-time_start,cnt);
                 if(cnt>>5){_3do_InternalFrame(cnt);i+=cnt;cnt=0;}
 
         }
@@ -285,7 +280,7 @@ void _3do_Read2048(void *buff)
 
 unsigned int _3do_DiscSize()
 {
-        return ((intptr_t)io_interface(EXT_GET_DISC_SIZE,NULL));
+        return (unsigned int)io_interface(EXT_GET_DISC_SIZE,NULL);
 }
 
 extern int __tex__scaler;
@@ -328,10 +323,10 @@ int line;
          case FDP_FREEDOCORE_VERSION:
                 return (void*)0x20008;
          case FDP_SET_ARMCLOCK:
-                ARM_CLOCK=*((int*)&datum);
+                ARM_CLOCK=(int)datum;
                 break;
          case FDP_SET_TEXQUALITY:
-                __tex__scaler=*((int*)&datum);
+                __tex__scaler=(int)datum;
                 break; 
         };
 

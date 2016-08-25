@@ -31,11 +31,7 @@ Felix Lazarev
 #include "vdlp.h"
 #include "arm.h"
 #include <math.h>
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 
 #include "bitop.h"
 BitReaderBig bitoper;
@@ -540,15 +536,14 @@ unsigned int __fastcall _madam_Peek(unsigned int addr)
 }
 
 
-void inline dotp(float  *a,  float *b, float  *c,
-       float  *e, float  *f, float  *g,
-       float   *o)
+void f(int  a, int  b, int  c,
+       int  e, int  f, int  g,
+       int   o)
 {
     int i;
-	for(i=0;i<3;i++){		
 
-        o[i] =((a[i]*e[i] + b[i]*f[i] + c[i]*g[i])/65536.0);
-	}
+    //for (i = 0; i < 2; ++i)
+        o = a*e + b*f + c*g/65536;
 }
 
 
@@ -624,27 +619,27 @@ void __fastcall _madam_Poke(unsigned int addr, unsigned int val)
 		return;
 
 //Matrix engine macros
-#define M00  ((float)(signed int)mregs[0x600])
-#define M01  ((float)(signed int)mregs[0x604])
-#define M02  ((float)(signed int)mregs[0x608])
-#define M03  ((float)(signed int)mregs[0x60C])
-#define M10  ((float)(signed int)mregs[0x610])
-#define M11  ((float)(signed int)mregs[0x614])
-#define M12  ((float)(signed int)mregs[0x618])
-#define M13  ((float)(signed int)mregs[0x61C])
-#define M20  ((float)(signed int)mregs[0x620])
-#define M21  ((float)(signed int)mregs[0x624])
-#define M22  ((float)(signed int)mregs[0x628])
-#define M23  ((float)(signed int)mregs[0x62C])
-#define M30  ((float)(signed int)mregs[0x630])
-#define M31  ((float)(signed int)mregs[0x634])
-#define M32  ((float)(signed int)mregs[0x638])
-#define M33  ((float)(signed int)mregs[0x63C])
+#define M00  ((double)(signed int)mregs[0x600])
+#define M01  ((double)(signed int)mregs[0x604])
+#define M02  ((double)(signed int)mregs[0x608])
+#define M03  ((double)(signed int)mregs[0x60C])
+#define M10  ((double)(signed int)mregs[0x610])
+#define M11  ((double)(signed int)mregs[0x614])
+#define M12  ((double)(signed int)mregs[0x618])
+#define M13  ((double)(signed int)mregs[0x61C])
+#define M20  ((double)(signed int)mregs[0x620])
+#define M21  ((double)(signed int)mregs[0x624])
+#define M22  ((double)(signed int)mregs[0x628])
+#define M23  ((double)(signed int)mregs[0x62C])
+#define M30  ((double)(signed int)mregs[0x630])
+#define M31  ((double)(signed int)mregs[0x634])
+#define M32  ((double)(signed int)mregs[0x638])
+#define M33  ((double)(signed int)mregs[0x63C])
 
-#define  V0  ((float)(signed int)mregs[0x640])
-#define  V1  ((float)(signed int)mregs[0x644])
-#define  V2  ((float)(signed int)mregs[0x648])
-#define  V3  ((float)(signed int)mregs[0x64C])
+#define  V0  ((double)(signed int)mregs[0x640])
+#define  V1  ((double)(signed int)mregs[0x644])
+#define  V2  ((double)(signed int)mregs[0x648])
+#define  V3  ((double)(signed int)mregs[0x64C])
 
 #define Rez0 mregs[0x660]
 #define Rez1 mregs[0x664]
@@ -694,52 +689,16 @@ void __fastcall _madam_Poke(unsigned int addr, unsigned int val)
 				Rez2=Rez2T;
 				Rez3=Rez3T;
 
-
-				float a[3];
-				float b[3];
-				float c[3];
-				float d[3];
-				float e[3];
-				float f[3];
-
-				float o[3];
-
-				a[0]=M00;
-				a[1]=M10;
-				a[2]=M20;
-
-				b[0]=M01;
-				b[1]=M11;
-				b[2]=M21;
-
-				c[0]=M02;
-				c[1]=M12;
-				c[2]=M22;
-
-				d[0]=V0;
-				d[1]=V0;
-				d[2]=V0;
-
-				e[0]=V1;
-				e[1]=V1;
-				e[2]=V1;
-
-				f[0]=V2;
-				f[1]=V2;
-				f[2]=V2;
-
-
-				dotp(a,b,c,d,e,f,o);
-
-				Rez0T=(int)o[0];
-				Rez1T=(int)o[1];
-				Rez2T=(int)o[2];
+				
+/*				f(M00,M01,M02,V0,V1,V2,Rez0T);
+				f(M10,M11,M12,V0,V1,V2,Rez1T);
+				f(M20,M21,M22,V0,V1,V2,Rez2T);*/
 
 
 				/*OPTIMIZABLE*/
-/*				Rez0T=(int)((M00*V0+M01*V1+M02*V2)/65536.0);
+				Rez0T=(int)((M00*V0+M01*V1+M02*V2)/65536.0);
 				Rez1T=(int)((M10*V0+M11*V1+M12*V2)/65536.0);
-				Rez2T=(int)((M20*V0+M21*V1+M22*V2)/65536.0);*/
+				Rez2T=(int)((M20*V0+M21*V1+M22*V2)/65536.0);
 				//printf("#Matrix CMD2, R0=0x%8.8X, R1=0x%8.8X, R2=0x%8.8X\n",Rez0,Rez1,Rez2);
 				return;
 
@@ -1327,9 +1286,6 @@ unsigned int __fastcall PPROC(unsigned int pixel, unsigned int fpix, unsigned in
 
 	pdeco	input1,out,pix1;
 
-	char r1,g1,b1;
-	char r2,g2,b2;
-
 	//return pixel;
 
 
@@ -1364,7 +1320,7 @@ unsigned int __fastcall PPROC(unsigned int pixel, unsigned int fpix, unsigned in
 	else
 		input1.raw=fpix;
 
-/*
+
 #pragma pack(push,1)
 	union
 	{
@@ -1377,27 +1333,27 @@ unsigned int __fastcall PPROC(unsigned int pixel, unsigned int fpix, unsigned in
 			char a;
 		};
 	} color1, color2, AOP, BOP;
-#pragma pack(pop)*/
+#pragma pack(pop)
 
 	switch(pixc.meaning.s2)
 	{
 	case 0:
-//		color2.raw=0;
+		color2.raw=0;
 		break;
 	case 1:
-		r2=g2=b2=(pixc.meaning.av>>AV.avsignal.dv3);
+		color2.R=color2.G=color2.B=(pixc.meaning.av>>AV.avsignal.dv3);
                 break;
 	case 2:
 		pix1.raw=fpix;
-		r2=(pix1.r16b.r)>>AV.avsignal.dv3;
-		g2=(pix1.r16b.g)>>AV.avsignal.dv3;
-		b2=(pix1.r16b.b)>>AV.avsignal.dv3;
+		color2.R=(pix1.r16b.r)>>AV.avsignal.dv3;
+		color2.G=(pix1.r16b.g)>>AV.avsignal.dv3;
+		color2.B=(pix1.r16b.b)>>AV.avsignal.dv3;
 		break;
 	case 3:
 		pix1.raw=pixel;
-		r2=(pix1.r16b.r)>>AV.avsignal.dv3;
-		g2=(pix1.r16b.g)>>AV.avsignal.dv3;
-		b2=(pix1.r16b.b)>>AV.avsignal.dv3;
+		color2.R=(pix1.r16b.r)>>AV.avsignal.dv3;
+		color2.G=(pix1.r16b.g)>>AV.avsignal.dv3;
+		color2.B=(pix1.r16b.b)>>AV.avsignal.dv3;
 		break;
 	}
 
@@ -1405,39 +1361,39 @@ unsigned int __fastcall PPROC(unsigned int pixel, unsigned int fpix, unsigned in
 	switch(pixc.meaning.ms)
 	{
 	case 0:
-		r1=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.r];
-		g1=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.g];
-		b1=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.b];
+		color1.R=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.r];
+		color1.G=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.g];
+		color1.B=PSCALAR[pixc.meaning.mxf][pixc.meaning.dv1][input1.r16b.b];
 		break;
 	case 1:
-		r1=PSCALAR[(amv>>6)&7][pixc.meaning.dv1][input1.r16b.r];
-		g1=PSCALAR[(amv>>3)&7][pixc.meaning.dv1][input1.r16b.g];
-		b1=PSCALAR[amv&7][pixc.meaning.dv1][input1.r16b.b];
+		color1.R=PSCALAR[(amv>>6)&7][pixc.meaning.dv1][input1.r16b.r];
+		color1.G=PSCALAR[(amv>>3)&7][pixc.meaning.dv1][input1.r16b.g];
+		color1.B=PSCALAR[amv&7][pixc.meaning.dv1][input1.r16b.b];
 		break;
 	case 2:
 		pix1.raw=pixel;
-		r1=PSCALAR[pix1.r16b.r>>2][pix1.r16b.r&3][input1.r16b.r];
-		g1=PSCALAR[pix1.r16b.g>>2][pix1.r16b.g&3][input1.r16b.g];
-		b1=PSCALAR[pix1.r16b.b>>2][pix1.r16b.b&3][input1.r16b.b];
+		color1.R=PSCALAR[pix1.r16b.r>>2][pix1.r16b.r&3][input1.r16b.r];
+		color1.G=PSCALAR[pix1.r16b.g>>2][pix1.r16b.g&3][input1.r16b.g];
+		color1.B=PSCALAR[pix1.r16b.b>>2][pix1.r16b.b&3][input1.r16b.b];
 		break;
 	case 3:
-		r1=PSCALAR[0][pixc.meaning.dv1][input1.r16b.r];
-		g1=PSCALAR[0][pixc.meaning.dv1][input1.r16b.g];
-		b1=PSCALAR[0][pixc.meaning.dv1][input1.r16b.b];
+		color1.R=PSCALAR[0][pixc.meaning.dv1][input1.r16b.r];
+		color1.G=PSCALAR[0][pixc.meaning.dv1][input1.r16b.g];
+		color1.B=PSCALAR[0][pixc.meaning.dv1][input1.r16b.b];
 		break;
 	}
 
 	//ok -- we got the sources -- now RGB processing
 	//AOP/BOP calculation
-//	AOP.raw=color1.raw&PXOR1;
-//	color1.raw&=PXOR2;
+	AOP.raw=color1.raw&PXOR1;
+	color1.raw&=PXOR2;
 
 
-/*	if(AV.avsignal.NEG)
-		BOP.raw=r2aw^0x00ffffff;
+	if(AV.avsignal.NEG)
+		BOP.raw=color2.raw^0x00ffffff;
 	else
 	{
-		BOP.raw=r2aw^color1.raw;
+		BOP.raw=color2.raw^color1.raw;
 	}
 
 	if(AV.avsignal.XTEND)
@@ -1445,36 +1401,36 @@ unsigned int __fastcall PPROC(unsigned int pixel, unsigned int fpix, unsigned in
 		BOP.R=(BOP.R<<3)>>3;
 		BOP.B=(BOP.B<<3)>>3;
 		BOP.G=(BOP.G<<3)>>3;
-	}*/
+	}
 
-/*	r2=(AOP.R+BOP.R+AV.avsignal.NEG)>>pixc.meaning.dv2;
-	g2=(AOP.G+BOP.G+AV.avsignal.NEG)>>pixc.meaning.dv2;
-	b2=(AOP.B+BOP.B+AV.avsignal.NEG)>>pixc.meaning.dv2;*/
+	color2.R=(AOP.R+BOP.R+AV.avsignal.NEG)>>pixc.meaning.dv2;
+	color2.G=(AOP.G+BOP.G+AV.avsignal.NEG)>>pixc.meaning.dv2;
+	color2.B=(AOP.B+BOP.B+AV.avsignal.NEG)>>pixc.meaning.dv2;
 
 
-//fprintf(flog,"%d %d %02x\t%02d %02d %02d\n", pixc.meaning.s2, pixc.meaning.ms, AV.raw, r2, g2, b2);
+//fprintf(flog,"%d %d %02x\t%02d %02d %02d\n", pixc.meaning.s2, pixc.meaning.ms, AV.raw, color2.R, color2.G, color2.B);
 
-/*	if(!AV.avsignal.nCLIP)
+	if(!AV.avsignal.nCLIP)
 	{
-			if(r2<0)  r2=0;
-			else if(r2>31) r2=31;
+			if(color2.R<0)  color2.R=0;
+			else if(color2.R>31) color2.R=31;
 
-			if(g2<0)  g2=0;
-			else if(g2>31) g2=31;
+			if(color2.G<0)  color2.G=0;
+			else if(color2.G>31) color2.G=31;
 
-			if(b2<0)  b2=0;
-			else if(b2>31) b2=31;
+			if(color2.B<0)  color2.B=0;
+			else if(color2.B>31) color2.B=31;
 
-	}*/
+	}
 
 
 
-//	out.raw=0;
-	out.r16b.r=r1;
-	out.r16b.g=g1;
-	out.r16b.b=b1;
+	out.raw=0;
+	out.r16b.r=color2.R;
+	out.r16b.g=color2.G;
+	out.r16b.b=color2.B;
 
-//	if(!(CCBFLAGS&CCB_NOBLK) && out.raw==0) out.raw=1<<10;
+	if(!(CCBFLAGS&CCB_NOBLK) && out.raw==0) out.raw=1<<10;
 
 	//if(!(PRE1&PRE1_NOSWAP) && (CCBCTL0&(1<<27)))
 	//			out.raw=(out.raw&0x7ffe)|((out.raw&0x8000)>>15)|((out.raw&1)<<15);
@@ -2535,30 +2491,19 @@ int __fastcall TexelDraw_Arbitrary(unsigned short CURPIX, unsigned short LAMV, i
 	unsigned int pixel;
 	unsigned int curr=-1, next;
 
-                                      /*   xA>>=(16-RESSCALE);
+                                         xA>>=(16-RESSCALE);
                                          xB>>=(16-RESSCALE);
                                          xC>>=(16-RESSCALE);
                                          xD>>=(16-RESSCALE);
                                          yA>>=(16-RESSCALE);
                                          yB>>=(16-RESSCALE);
                                          yC>>=(16-RESSCALE);
-                                         yD>>=(16-RESSCALE);*/
-  									     xA>>=(16);
-                                         xB>>=(16);
-                                         xC>>=(16);
-                                         xD>>=(16);
-                                         yA>>=(16);
-                                         yB>>=(16);
-                                         yC>>=(16);
-                                         yD>>=(16);
+                                         yD>>=(16-RESSCALE);
 
                                          if((xA)==(xB) && (xB)==(xC) && (xC)==(xD)) return 0;
 
-                                /*         maxxt=((CLIPXVAL+1)<<RESSCALE);
-                                         maxyt=((CLIPYVAL+1)<<RESSCALE);*/
-
-                                         maxxt=((CLIPXVAL+1));
-                                         maxyt=((CLIPYVAL+1));
+                                         maxxt=((CLIPXVAL+1)<<RESSCALE);
+                                         maxyt=((CLIPYVAL+1)<<RESSCALE);
 
                                          if(HDX1616<0 && HDDX1616<0)
                                          {

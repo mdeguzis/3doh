@@ -39,8 +39,7 @@ Felix Lazarev
 	void __fastcall _mem_write8(unsigned int addr, unsigned char val);
         void __fastcall _mem_write16(unsigned int addr, unsigned short val);
         void __fastcall _mem_write32(unsigned int addr, unsigned int val);
-        static inline unsigned char _mem_read8(unsigned int addr);
-        //unsigned char _mem_read8(unsigned int addr);
+        unsigned char __fastcall _mem_read8(unsigned int addr);
         unsigned short __fastcall _mem_read16(unsigned int addr);
         unsigned int __fastcall _mem_read32(unsigned int addr);
 
@@ -51,9 +50,6 @@ Felix Lazarev
         unsigned int _arm_SaveSize();
         void _arm_Save(void *buff);
         void _arm_Load(void *buff);
-
-		uint8* getpram();
-        unsigned char memread8(unsigned int addr);
 
 
 #endif 

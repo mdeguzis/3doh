@@ -28,11 +28,7 @@ Felix Lazarev
 #include "freedoconfig.h"
 #include "SPORT.h"
 #include "arm.h"
-#ifndef DREAMCAST
 #include <memory.h>
-#else
-#include <string.h>
-#endif
 
 #include "freedocore.h"
 
